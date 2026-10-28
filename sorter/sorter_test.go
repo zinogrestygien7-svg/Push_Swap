@@ -1,6 +1,7 @@
 package sorter
 
 import (
+	"math/rand"
 	"testing"
 
 	"push-swap/stack"
@@ -37,5 +38,117 @@ func TestSort3(t *testing.T) {
 	}
 	for _, c := range cases {
 		check(t, c, 2)
+	}
+}
+func permutations(n int) [][]int {
+	var res [][]int
+	used := make([]bool, n)
+	var gen func(cur []int)
+	gen = func(cur []int) {
+		if len(cur) == n {
+			res = append(res, append([]int{}, cur...))
+			return
+		}
+		for v := 1; v <= n; v++ {
+			if used[v-1] {
+				continue
+			}
+			used[v-1] = true
+			gen(append(cur, v))
+			used[v-1] = false
+		}
+	}
+	gen(nil)
+	return res
+}
+
+func TestSort4And5(t *testing.T) {
+	for _, n := range []int{4, 5} {
+		for _, p := range permutations(n) {
+			check(t, p, 12)
+		}
+	}
+}
+
+func TestSortLarge(t *testing.T) {
+	r := rand.New(rand.NewSource(1))
+	for _, n := range []int{6, 7, 10, 100, 500} {
+		in := r.Perm(n)
+		for i := range in {
+			in[i] -= n / 2 // introduit des nombres négatifs
+		}
+		check(t, in, 100000)
+		t.Logf("n=%d : %d instructions", n, len(Sort(append(stack.Stack{}, in...))))
+	}
+}
+func TestAverageOps(t *testing.T) {
+	r := rand.New(rand.NewSource(1))
+	for _, n := range []int{6, 7, 8, 9, 10, 12, 15, 20, 30, 50, 100} {
+		total := 0
+		const runs = 50
+		for i := 0; i < runs; i++ {
+			in := r.Perm(n)
+			check(t, in, 100000)
+			total += len(Sort(append(stack.Stack{}, in...)))
+		}
+		t.Logf("n=%3d : moyenne %d instructions", n, total/runs)
+	}
+}
+func TestOptimize(t *testing.T) {
+	cases := []struct{ in, want []string }{
+		{[]string{"ra", "rb"}, []string{"rr"}},
+		{[]string{"ra", "rra"}, []string{}},
+		{[]string{"pb", "pa"}, []string{}},
+		{[]string{"ra", "ra", "rra", "rb"}, []string{"ra", "rb"}},
+	}
+	for _, c := range cases {
+		got := Optimize(c.in)
+		if len(got) != len(c.want) {
+			t.Fatalf("%v : got %v, want %v", c.in, got, c.want)
+		}
+		for i := range got {
+			if got[i] != c.want[i] {
+				t.Errorf("%v : got %v, want %v", c.in, got, c.want)
+			}
+		}
+	}
+}
+
+func solveSmall(a stack.Stack) []string {
+	s := New(a)
+	s.sortSmall()
+	return s.Ops
+}
+
+func solveChunk(a stack.Stack, size int) []string {
+	s := New(a)
+	s.chunk(size)
+	return s.Ops
+}
+
+// avg : nombre moyen d'instructions (après Optimize) sur runs piles aléatoires.
+func avg(n, runs int, solve func(stack.Stack) []string) int {
+	r := rand.New(rand.NewSource(1))
+	total := 0
+	for i := 0; i < runs; i++ {
+		total += len(Optimize(solve(stack.Stack(r.Perm(n)))))
+	}
+	return total / runs
+}
+
+func TestTuneSmallLimit(t *testing.T) {
+	for _, n := range []int{6, 8, 10, 12, 15, 20, 25, 30, 40} {
+		small := avg(n, 50, solveSmall)
+		chunks := avg(n, 50, func(a stack.Stack) []string { return solveChunk(a, chunkSize(n)) })
+		t.Logf("n=%3d : petites=%4d  chunks=%4d", n, small, chunks)
+	}
+}
+
+func TestTuneChunkSize(t *testing.T) {
+	for _, n := range []int{100, 500} {
+		for size := n / 20; size <= n/2; size += n / 20 {
+			got := avg(n, 20, func(a stack.Stack) []string { return solveChunk(a, size) })
+			t.Logf("n=%3d size=%3d : %d instructions", n, size, got)
+		}
 	}
 }
