@@ -10,6 +10,9 @@ import (
 // À régler avec TestTuneSmallLimit.
 const smallLimit = 30
 
+// bfsLimit : jusqu'à cette taille, on cherche la solution optimale par BFS.
+const bfsLimit = 6
+
 // Sorter exécute des instructions sur une Machine et les mémorise.
 type Sorter struct {
 	M   stack.Machine
@@ -39,10 +42,8 @@ func (s *Sorter) sort() {
 		return
 	}
 	switch n := len(s.M.A); {
-	case n == 2:
-		s.do("sa")
-	case n == 3:
-		s.sort3()
+	case n <= bfsLimit:
+		s.bfs()
 	case n <= smallLimit:
 		s.sortSmall()
 	default:
@@ -141,9 +142,9 @@ func (s *Sorter) toRanks() {
 
 // chunkSize choisit la taille des tranches (à régler avec TestTuneChunkSize).
 func chunkSize(n int) int {
-	size := n / 5
-	if n > 100 {
-		size = n / 11
+	size := n / 7 // 100 -> 14
+	if n > 150 {
+		size = n / 14 // 500 -> 25
 	}
 	if size < 1 {
 		size = 1

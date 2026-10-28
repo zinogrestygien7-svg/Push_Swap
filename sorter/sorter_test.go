@@ -99,7 +99,7 @@ func TestOptimize(t *testing.T) {
 		{[]string{"ra", "rb"}, []string{"rr"}},
 		{[]string{"ra", "rra"}, []string{}},
 		{[]string{"pb", "pa"}, []string{}},
-		{[]string{"ra", "ra", "rra", "rb"}, []string{"ra", "rb"}},
+		{[]string{"ra", "ra", "rra", "rb"}, []string{"rr"}},
 	}
 	for _, c := range cases {
 		got := Optimize(c.in)
@@ -145,10 +145,12 @@ func TestTuneSmallLimit(t *testing.T) {
 }
 
 func TestTuneChunkSize(t *testing.T) {
-	for _, n := range []int{100, 500} {
-		for size := n / 20; size <= n/2; size += n / 20 {
-			got := avg(n, 20, func(a stack.Stack) []string { return solveChunk(a, size) })
-			t.Logf("n=%3d size=%3d : %d instructions", n, size, got)
-		}
+	for _, size := range []int{10, 12, 14, 16, 18, 20, 22} {
+		got := avg(100, 30, func(a stack.Stack) []string { return solveChunk(a, size) })
+		t.Logf("n=100 size=%3d : %d instructions", size, got)
+	}
+	for _, size := range []int{10, 15, 20, 25, 30, 35, 40} {
+		got := avg(500, 10, func(a stack.Stack) []string { return solveChunk(a, size) })
+		t.Logf("n=500 size=%3d : %d instructions", size, got)
 	}
 }
